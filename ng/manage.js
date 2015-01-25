@@ -55,9 +55,10 @@ angular.module("mp.resizer", [])
                  $document.unbind('mouseup', mouseup);
              }
          };
-     })
+     });
+
 angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootstrap", "angularBootstrapNavTree", "rx", "mp.resizer"])
-    .controller("bodyController", function ($scope, $routeParams, $location, $http, $q, $timeout, rx) {
+    .controller("treeBodyController", function ($scope, $routeParams, $location, $http, $q, $timeout, rx) {
 
         $scope.treeControl = {};
         $scope.createModel = {};
@@ -88,8 +89,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
         $scope.$createObservableFunction("selectResourceHandler")
             .flatMapLatest(selectResource)
             .do(function () {}, function (err) {
-                $scope.invoking = false;
-                $scope.loading = false;
+                setStateForErrorOnResourceClick();
                 if (!err.config.dontClickFirstTab) selectFirstTab(1);
                 if (err.config && err.config.resourceDefinition && !isEmptyObjectorArray(err.config.resourceDefinition.requestBody)) {
                     var resourceDefinition = err.config.resourceDefinition;
@@ -104,11 +104,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             })
             .retry()
             .subscribe(function (value) {
-                delete $scope.putError;
-                delete $scope.selectedResource;
-                $scope.invoking = false;
-                $scope.loading = false;
-                $scope.creatable = false;
+                setStateForClickOnResource();
                 if (!value.dontClickFirstTab) { selectFirstTab(1); delete $scope.actionResponse; }
                 if (value.data === undefined) {
                     if (value.resourceDefinition !== undefined && !isEmptyObjectorArray(value.resourceDefinition.requestBody)) {
@@ -169,7 +165,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                         return d.length === 1;
                     }).map(function (childString) {
                         var d = getResourceDefinitionByNameAndUrl(childString, resourceDefinition.url + "/" + childString);
-                        if (d.children === undefined && Array.isArray(d.actions) && d.actions.filter(function (actionName) { return actionName === "POST" }).length > 0) {
+                        if (d.children === undefined && Array.isArray(d.actions) && d.actions.filter(function (actionName) { return actionName === "POST"; }).length > 0) {
                             return {
                                 httpMethod: "POST",
                                 name: d.resourceName,
@@ -181,13 +177,12 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                 $scope.selectedResource = {
                     url: url,
                     actionsAndVerbs: actionsAndVerbs,
-                    httpMethod: value.httpMethod,
+                    httpMethod: value.httpMethod
                 };
             });
 
         $scope.invokeAction = function (action, url) {
-            $scope.loading = true;
-            delete $scope.actionResponse;
+            setStateForInvokeAction();
             $http({
                 method: "POST",
                 url: "api/operations",
@@ -217,10 +212,9 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
         };
 
         $scope.invokePut = function () {
-            delete $scope.putError;
+            setStateForInvokePut();
             var userObject = JSON.parse(editor.getValue());
             cleanObject(userObject);
-            $scope.invoking = true;
             $http({
                 method: "POST",
                 url: "api/operations",
@@ -255,16 +249,22 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
 
             if (Array.isArray(resourceDefinition.children)) {
                 //TODO
-                branch.children = resourceDefinition.children.map(function (childName) {
+                branch.children = resourceDefinition.children.filter(function(childName) {
                     var childDefinition = getResourceDefinitionByNameAndUrl(childName, resourceDefinition.url + "/" + childName);
-                    if (!childDefinition) return;
-                    if (childDefinition.children === undefined && Array.isArray(childDefinition.actions) && childDefinition.actions.filter(function (actionName) { return actionName === "POST" }).length > 0) return;
+                    if (!childDefinition) return false;
+                    if (childDefinition.children === undefined &&
+                        Array.isArray(childDefinition.actions) &&
+                        childDefinition.actions.filter(function (actionName) { return actionName === "POST"; }).length > 0)
+                        return false;
+                    return true;
+                }).map(function (childName) {
+                    var childDefinition = getResourceDefinitionByNameAndUrl(childName, resourceDefinition.url + "/" + childName);
                     return {
                         label: childName,
                         resourceDefinition: childDefinition,
                         is_leaf: (childDefinition.children ? false : true)
                     };
-                }).filter(function (f) { return f !== undefined; });
+                });
                 if (branch.children.length === 1)
                     $timeout(function () {
                         $scope.expandResourceHandler($scope.treeControl.get_first_child(branch));
@@ -277,7 +277,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                 var httpConfig = (getUrl.endsWith("resourceGroups") || getUrl.endsWith("subscriptions") || getUrl.split("/").length === 3)
                   ? {
                       method: "GET",
-                      url: "api" + getUrl.substring(getUrl.indexOf("/subscriptions")),
+                      url: "api" + getUrl.substring(getUrl.indexOf("/subscriptions"))
                   }
                   : {
                       method: "POST",
@@ -318,21 +318,21 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             $scope.createMode = true;
             createEditor.resize();
             delete $scope.createModel.createdResourceName;
-        }
+        };
 
         $scope.leaveCreateMode = function () {
             $scope.createMode = false;
             editor.resize();
-        }
+        };
 
         $scope.clearCreate = function () {
             delete $scope.createModel.createdResourceName;
             createEditor.setValue(JSON.stringify($scope.createMetaData, undefined, 4));
             createEditor.session.selection.clearSelection();
-        }
+        };
 
         $scope.invokeCreate = function () {
-            var resourceName = $scope.createModel.createdResourceName
+            var resourceName = $scope.createModel.createdResourceName;
             if (!resourceName) {
                 $scope.createError = syntaxHighlight({
                     error: {
@@ -370,23 +370,46 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                     $scope.expandResourceHandler(branch);
                 }, 50);
             });
-        }
+        };
 
         $scope.refreshContent = function () {
             $scope.selectResourceHandler($scope.treeControl.get_selected_branch(), undefined);
-        }
+        };
 
         $scope.enterDataTab = function () {
             if (editor) {
                 editor.resize();
             }
-        }
+        };
 
         // Get resourcesDefinitions
         initResourcesDefinitions();
 
         // Get tenants list
         initTenants();
+
+        function setStateForClickOnResource() {
+            delete $scope.putError;
+            delete $scope.selectedResource;
+            $scope.invoking = false;
+            $scope.loading = false;
+            $scope.creatable = false;
+        }
+
+        function setStateForErrorOnResourceClick() {
+            $scope.invoking = false;
+            $scope.loading = false;
+        }
+
+        function setStateForInvokeAction() {
+            $scope.loading = true;
+            delete $scope.actionResponse;
+        }
+
+        function setStateForInvokePut() {
+            delete $scope.putError;
+            $scope.invoking = true;
+        }
 
         function fadeInAndFadeOutSuccess() {
             setTimeout(function () {
@@ -509,7 +532,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
 
         function buildResourcesDefinitionsTable(operation, url) {
             url = (operation ? operation.Url : url);
-            var segments = url.split("/").filter(function (a) { return a.length !== 0 });
+            var segments = url.split("/").filter(function (a) { return a.length !== 0; });
             var resourceName = segments.pop();
             var addedElement;
 
@@ -523,12 +546,12 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             }
 
             //set the element itself
-            var elements = $scope.resourcesDefinitionsTable.filter(function (r) { return r.url === url });
+            var elements = $scope.resourcesDefinitionsTable.filter(function (r) { return r.url === url; });
             if (elements.length === 1) {
                 //it's there, update it's actions
                 if (operation) {
                     elements[0].requestBody = (elements[0].requestBody ? elements[0].requestBody : operation.RequestBody);
-                    if (elements[0].actions.filter(function (c) { return c === operation.HttpMethod }).length === 0) {
+                    if (elements[0].actions.filter(function (c) { return c === operation.HttpMethod; }).length === 0) {
                         elements[0].actions.push(operation.HttpMethod);
                     }
                 }
@@ -546,7 +569,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             // set the parent recursively
             setParent(url);
             return addedElement;
-        }
+        };
 
         function setParent(url, action, requestBody) {
             var segments = url.split("/").filter(function (a) { return a.length !== 0; });
@@ -768,7 +791,185 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             }
             return target;
         }
+    })
+    .controller("rawBodyController", function ($scope, $routeParams, $location, $http, $q, $timeout, rx) {
+        var requestEditor, responseEditor;
+        $(document).keydown(function(e) {
+            if (e.ctrlKey && e.keyCode == 83) {
+                e.preventDefault();
+                e.stopPropagation();
+                var content = requestEditor.session.getTextRange(requestEditor.getSelectionRange());
+                var message = parseText(content);
+                if (message !== undefined) {
+                    $http({
+                        method: "POST",
+                        url: "api/operations",
+                        data: {
+                            Url: message.url,
+                            HttpMethod: message.httpMethod,
+                            RequestBody: message.body
+                        }
+                    }).error(function (err) {
+                        responseEditor.setValue(JSON.stringify(err, undefined, 4));
+                   }).success(function (data) {
+                        responseEditor.setValue(JSON.stringify(data, undefined, 4));
+                   }).finally(function() {responseEditor.session.selection.clearSelection();responseEditor.resize();});
+
+                } else {
+                    responseEditor.setValue("Couldn't parse the selected text below \n\n" + content);
+                    responseEditor.session.selection.clearSelection();
+                }
+            }
+//            console.log("keyCode: " + e.keyCode);
+        });
+        $timeout(function () {
+            requestEditor = ace.edit("request-editor");
+            responseEditor = ace.edit("response-editor");
+            [requestEditor, responseEditor].map(function (e) {
+                e.setOptions({
+                    maxLines: Infinity,
+                    fontSize: 16,
+                    wrap: "free",
+                    showPrintMargin: false,
+                    scrollPastEnd: true
+                });
+                e.setTheme("ace/theme/tomorrow_night_eighties");
+                e.getSession().setMode("ace/mode/ahmed");
+                e.commands.removeCommand('find');
+            });
+        });
+
+        function parseText(text) {
+            try {
+                var pattern = /^\s*([a-zA-Z]*)\s(.*)[\r\n]*([\s\S]*)/mi;
+                var matches = text.match(pattern);
+                return {
+                    httpMethod: matches[1],
+                    url: matches[2],
+                    body: (matches[3] ? JSON.parse(matches[3]) : undefined)
+                };
+            } catch(e) {
+                return undefined;
+            }
+        }
     });
+
+ace.define('ace/mode/ahmed', function(require, exports, module) {
+
+    var oop = require("ace/lib/oop");
+    var TextMode = require("ace/mode/text").Mode;
+    var Tokenizer = require("ace/tokenizer").Tokenizer;
+    var ExampleHighlightRules = require("ace/mode/example_highlight_rules").ExampleHighlightRules;
+
+    var Mode = function() {
+        this.$tokenizer = new Tokenizer(new ExampleHighlightRules().getRules());
+    };
+     oop.inherits(Mode, TextMode);
+
+    (function() {
+        // Extra logic goes here. (see below)
+     }).call(Mode.prototype);
+
+    exports.Mode = Mode;
+});
+
+    var escapedRe = "\\\\(?:x[0-9a-fA-F]{2}|" + // hex
+        "u[0-9a-fA-F]{4}|" + // unicode
+        "[0-2][0-7]{0,2}|" + // oct
+        "3[0-6][0-7]?|" + // oct
+        "37[0-7]?|" + // oct
+        "[4-7][0-7]?|" + //oct
+        ".)";
+
+ace.define('ace/mode/example_highlight_rules', function(require, exports, module) {
+
+    var oop = require("ace/lib/oop");
+    var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+    var ExampleHighlightRules = function() {
+
+        this.$rules = {
+            start: [ {
+                token: ["keyword", "entity"],
+                regex: "(GET|POST|PUT|DELETE)(.*)"
+            },
+            {
+                token: "comment",
+                regex: "\\#.*$"
+            },
+            {
+                token: ["keyword.operator", "constant.language"],
+                regex: "([a-zA-Z].*\\:)(.*)$"
+            },
+            {
+                token: "keyword.operator",
+                regex: "(\"[a-zA-Z].*\\:)"
+            },
+            {
+                token : "string",
+                regex : "'(?=.)",
+                next  : "qstring"
+            }, {
+                token : "string",
+                regex : '"(?=.)',
+                next  : "qqstring"
+            }, {
+                token : "keyword.operator", // hex
+                regex : /0[xX][0-9a-fA-F]+\b/
+            }, {
+                token : "keyword.operator", // float
+                regex : /[+-]?\d+(?:(?:\.\d*)?(?:[eE][+-]?\d+)?)?\b/
+            },
+            {
+                token: "entity.name.tag",
+                regex: "null"
+            },
+            {
+                token: "entity.name.function",
+                regex: "true|false"
+            },
+            {
+                token: "invalid",
+                regex: "^Couldn't parse.*$"
+            }],
+            "qqstring" : [
+            {
+                token : "constant.language.escape",
+                regex : escapedRe
+            }, {
+                token : "string",
+                regex : "\\\\$",
+                next  : "qqstring"
+            }, {
+                token : "string",
+                regex : '"|$',
+                next  : "no_regex"
+            }, {
+                defaultToken: "string"
+            }
+        ],
+        "qstring" : [
+            {
+                token : "constant.language.escape",
+                regex : escapedRe
+            }, {
+                token : "string",
+                regex : "\\\\$",
+                next  : "qstring"
+            }, {
+                token : "string",
+                regex : "'|$",
+                next  : "no_regex"
+            }, {
+                defaultToken: "string"
+            }
+        ]
+        };
+    };
+
+    oop.inherits(ExampleHighlightRules, TextHighlightRules);
+
+    exports.ExampleHighlightRules = ExampleHighlightRules;
+});
 
 // Global JS fixes
 $('label.tree-toggler').click(function () {
@@ -802,7 +1003,7 @@ Array.prototype.getUnique = function (getValue) {
         u[value] = 1;
     }
     return a;
-}
+};
 
 //http://devdocs.io/javascript/global_objects/array/indexof
 Array.prototype.indexOfDelegate = function (searchElement, fromIndex) {

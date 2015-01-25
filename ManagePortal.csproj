@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -22,7 +21,6 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
-    <TypeScriptToolsVersion>1.0</TypeScriptToolsVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -152,7 +150,7 @@
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="ng\manage.js" />
-    <Content Include="ng\ngViews\Home.html" />
+    <Content Include="raw\index.html" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -169,24 +167,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-animate.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-cookies.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-mocks.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-resource.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-route.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-sanitize.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-scenario.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular-ui-bootstrap.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\angularjs\angular.d.ts" />
-    <TypeScriptCompile Include="Content\Scripts\typings\jquery\jquery.d.ts" />
     <Content Include="Content\Styles\sb-admin-2.css" />
-    <TypeScriptCompile Include="ng\app.ts" />
-    <TypeScriptCompile Include="ng\ngControllers\controllers.ts" />
-    <TypeScriptCompile Include="ng\ngInterfaces\models.ts" />
-    <TypeScriptCompile Include="ng\ngInterfaces\routeParameters.ts" />
-    <TypeScriptCompile Include="ng\ngInterfaces\scopes.ts" />
-    <TypeScriptCompile Include="ng\ngServices\managePortalApi.ts" />
-    <TypeScriptCompile Include="ng\references.ts" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="index.html" />
@@ -195,18 +176,12 @@
     <Content Include="applicationHost.xdt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="Properties\PublishProfiles\FileSystem.pubxml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <TypeScriptSourceMap>False</TypeScriptSourceMap>
-    <TypeScriptOutFile>ng\app.js</TypeScriptOutFile>
-  </PropertyGroup>
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets')" />
   <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
   <Target Name="MvcBuildViews" AfterTargets="AfterBuild" Condition="'$(MvcBuildViews)'=='true'">
