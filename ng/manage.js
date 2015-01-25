@@ -827,7 +827,6 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             responseEditor = ace.edit("response-editor");
             [requestEditor, responseEditor].map(function (e) {
                 e.setOptions({
-                    maxLines: Infinity,
                     fontSize: 16,
                     wrap: "free",
                     showPrintMargin: false,
