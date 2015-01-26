@@ -406,7 +406,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             delete $scope.actionResponse;
         }
 
-        function setStateForInvokePut() {
+        function setStateForInvokePut() {n
             delete $scope.putError;
             $scope.invoking = true;
         }
@@ -794,6 +794,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
     })
     .controller("rawBodyController", function ($scope, $routeParams, $location, $http, $q, $timeout, rx) {
         var requestEditor, responseEditor;
+        initTenants();
         $(document).keydown(function(e) {
             if (e.ctrlKey && e.keyCode == 83) {
                 e.preventDefault();
@@ -801,6 +802,10 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                 var content = requestEditor.session.getTextRange(requestEditor.getSelectionRange());
                 var message = parseText(content);
                 if (message !== undefined) {
+                    $scope.loading = true;
+                    if (window.localStorage) {
+                        window.localStorage.csmRawContent = requestEditor.getValue();
+                    }
                     $http({
                         method: "POST",
                         url: "api/operations",
@@ -810,14 +815,20 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                             RequestBody: message.body
                         }
                     }).error(function (err) {
-                        responseEditor.setValue(JSON.stringify(err, undefined, 4));
+                        responseEditor.setValue(JSON.stringify(err, undefined, 2));
                    }).success(function (data) {
-                        responseEditor.setValue(JSON.stringify(data, undefined, 4));
-                   }).finally(function() {responseEditor.session.selection.clearSelection();responseEditor.resize();});
+                        responseEditor.setValue(JSON.stringify(data, undefined, 2));
+                   }).finally(function() {
+                       responseEditor.moveCursorTo(0, 0);
+                       responseEditor.session.selection.clearSelection();
+                       responseEditor.resize();
+                       $scope.loading = false;
+                   });
 
                 } else {
                     responseEditor.setValue("Couldn't parse the selected text below \n\n" + content);
                     responseEditor.session.selection.clearSelection();
+                    responseEditor.moveCursorTo(0, 0);
                 }
             }
 //            console.log("keyCode: " + e.keyCode);
@@ -832,11 +843,24 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                     showPrintMargin: false,
                     scrollPastEnd: true
                 });
-                e.setTheme("ace/theme/tomorrow_night_eighties");
+                e.setTheme("ace/theme/ambiance");//_night_eighties");
                 e.getSession().setMode("ace/mode/ahmed");
-                e.commands.removeCommand('find');
+                //e.commands.removeCommand('find');
             });
+            var initialContent = window.localStorage.csmRawContent;
+            requestEditor.setValue(initialContent ? initialContent : getTutorialContent());
+            requestEditor.session.selection.clearSelection();
+            requestEditor.moveCursorTo(0, 0);
+            
         });
+
+        $scope.tenantSelect = function () {
+            window.location = "api/tenants/" + $scope.selectedTenant.id;
+        };
+
+        function getTutorialContent() {
+            return "# You can execute a request by highlighting it and hitting CTR+S (for Send)\n# You can send a request body simply by writing the body right after the request.\n# The body has to be a valid JSON object\n\n## Get subscriptions\nGET https:\/\/management.azure.com\/subscriptions\n\n## Get resource groups in a subscription\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\n\n## Get sites in a resource group\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\n\n## Get site config\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\n\n## Get site\'s app settings\nPOST https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings\/list\n\n## Set site\'s app settings\nPUT https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings\n\n{\n \"properties\": [\n    {\n   \"name\": \"WEBSITE_NODE_DEFAULT_VERSION\",\n      \"value\": \"0.10.32\"\n    },\n    {\n      \"name\": \"newAppSetting\",\n      \"value\": \"New Value\"\n    }\n  ]\n}";
+        }
 
         function parseText(text) {
             try {
@@ -850,6 +874,22 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
             } catch(e) {
                 return undefined;
             }
+        }
+
+        function initTenants() {
+            $http({
+                method: "GET",
+                url: "api/tenants"
+            }).success(function (tenants) {
+                $scope.tenants = tenants.map(function (tenant) {
+                    return {
+                        name: tenant.DisplayName + " (" + tenant.DomainName + ")",
+                        id: tenant.TenantId,
+                        current: tenant.Current
+                    };
+                });
+                $scope.selectedTenant = $scope.tenants[$scope.tenants.indexOfDelegate(function (tenant) { return tenant.current; })];
+            });
         }
     });
 
@@ -888,42 +928,45 @@ ace.define('ace/mode/example_highlight_rules', function(require, exports, module
 
         this.$rules = {
             start: [ {
-                token: ["keyword", "entity"],
-                regex: "(GET|POST|PUT|DELETE)(.*)"
+                token: ["keyword", "storage.type"],
+                regex: "(GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH|get|post|put|delete|head|options|patch)(.*)"
             },
             {
                 token: "comment",
                 regex: "\\#.*$"
-            },
+            }/*,
             {
-                token: ["keyword.operator", "constant.language"],
+                token: ["paren", "constant.language"],
                 regex: "([a-zA-Z].*\\:)(.*)$"
-            },
+            }*/,
             {
-                token: "keyword.operator",
-                regex: "(\"[a-zA-Z].*\\:)"
+                token: "paren",
+                regex: "(\"[a-zA-Z].*?\":)"
             },
             {
                 token : "string",
                 regex : "'(?=.)",
                 next  : "qstring"
-            }, {
+            },
+            {
                 token : "string",
                 regex : '"(?=.)',
                 next  : "qqstring"
-            }, {
-                token : "keyword.operator", // hex
+            },
+            {
+                token : "constant.numeric", // hex
                 regex : /0[xX][0-9a-fA-F]+\b/
-            }, {
-                token : "keyword.operator", // float
+            },
+            {
+                token : "constant.numeric", // float
                 regex : /[+-]?\d+(?:(?:\.\d*)?(?:[eE][+-]?\d+)?)?\b/
             },
             {
-                token: "entity.name.tag",
+                token: "keyword.operator",
                 regex: "null"
             },
             {
-                token: "entity.name.function",
+                token: "constant.language.boolean",
                 regex: "true|false"
             },
             {
@@ -941,7 +984,7 @@ ace.define('ace/mode/example_highlight_rules', function(require, exports, module
             }, {
                 token : "string",
                 regex : '"|$',
-                next  : "no_regex"
+                next  : "start"
             }, {
                 defaultToken: "string"
             }
@@ -957,7 +1000,7 @@ ace.define('ace/mode/example_highlight_rules', function(require, exports, module
             }, {
                 token : "string",
                 regex : "'|$",
-                next  : "no_regex"
+                next  : "start"
             }, {
                 defaultToken: "string"
             }
