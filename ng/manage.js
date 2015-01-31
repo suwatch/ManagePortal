@@ -812,7 +812,8 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
                         data: {
                             Url: message.url,
                             HttpMethod: message.httpMethod,
-                            RequestBody: message.body
+                            RequestBody: message.body,
+                            RequireApiVersion: true
                         }
                     }).error(function (err) {
                         responseEditor.setValue(JSON.stringify(err, undefined, 2));
@@ -859,7 +860,7 @@ angular.module("managePortal", ["ngRoute", "ngAnimate", "ngSanitize", "ui.bootst
         };
 
         function getTutorialContent() {
-            return "# You can execute a request by highlighting it and hitting CTR+S (for Send)\n# You can send a request body simply by writing the body right after the request.\n# The body has to be a valid JSON object\n\n## Get subscriptions\nGET https:\/\/management.azure.com\/subscriptions\n\n## Get resource groups in a subscription\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\n\n## Get sites in a resource group\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\n\n## Get site config\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\n\n## Get site\'s app settings\nPOST https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings\/list\n\n## Set site\'s app settings\nPUT https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings\n\n{\n \"properties\": [\n    {\n   \"name\": \"WEBSITE_NODE_DEFAULT_VERSION\",\n      \"value\": \"0.10.32\"\n    },\n    {\n      \"name\": \"newAppSetting\",\n      \"value\": \"New Value\"\n    }\n  ]\n}";
+            return "# You can execute a request by highlighting it and hitting CTR+S (for Send)\n# You can send a request body simply by writing the body right after the request.\n# The body has to be a valid JSON object\n\n## Get subscriptions\nGET https:\/\/management.azure.com\/subscriptions?api-version=2014-11-01\n\n## Get resource groups in a subscription\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups?api-version=2015-01-01\n\n## Get sites in a resource group\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites?api-version=2014-11-01\n\n## Get site\'s config\nGET https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/web?api-version=2014-11-01\n\n## Get site\'s app settings\nPOST https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings\/list?api-version=2014-11-01\n\n## Set site\'s app settings\nPUT https:\/\/management.azure.com\/subscriptions\/<subscriptionId>\/resourceGroups\/<resourceGroup>\/providers\/Microsoft.Web\/sites\/<siteName>\/config\/appsettings?api-version=2014-11-01\n\n{\n \"properties\": {\n     \"WEBSITE_NODE_DEFAULT_VERSION\": \"0.10.32\",\n     \"newAppSetting\": \"New Value\"\n  }\n}";
         }
 
         function parseText(text) {

@@ -68,7 +68,7 @@ namespace ManagePortal.Controllers
             using (var client = GetClient(Utils.GetCSMUrl(Request.RequestUri.Host)))
             {
                 var apiVersion = Utils.GetApiVersion(info.Url);
-                var request = new HttpRequestMessage(new System.Net.Http.HttpMethod(info.HttpMethod), info.Url + "?api-version=" + apiVersion);
+                var request = new HttpRequestMessage(new System.Net.Http.HttpMethod(info.HttpMethod), (info.RequireApiVersion ? info.Url : info.Url + "?api-version=" + apiVersion));
                 if (info.RequestBody != null)
                 {
                     request.Content = new StringContent(info.RequestBody.ToString(), Encoding.UTF8, "application/json");
